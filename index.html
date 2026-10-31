@@ -1,0 +1,557 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nexus Proxy</title>
+<style>
+:root{
+  --bg:#080c14;--panel:#101725;--panel2:#172235;
+  --border:#28364c;--text:#edf3ff;--muted:#8999b0;
+  --blue:#398bff;--blue2:#1765dc;--red:#ff6878;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif;height:100vh;overflow:hidden}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{height:100vh;display:flex;flex-direction:column}
+.topbar{
+ height:60px;display:flex;align-items:center;padding:0 18px;gap:14px;
+ background:#0c121e;border-bottom:1px solid var(--border);flex-shrink:0
+}
+.logo{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:850;white-space:nowrap}
+.logo-icon{width:35px;height:35px;border-radius:11px;background:linear-gradient(135deg,#45a3ff,#674bff);display:grid;place-items:center;font-size:21px}
+.logo span{color:#62aaff}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:9px}
+.mode{font-size:11px;color:#65dda9;display:flex;gap:7px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:#3de5a4;box-shadow:0 0 8px #3de5a4}
+.icon-btn,.tool{
+ border:1px solid var(--border);background:var(--panel2);
+ color:var(--text);border-radius:9px;display:grid;place-items:center
+}
+.icon-btn{height:35px;width:35px;font-size:16px}
+.tabs{display:flex;gap:5px;padding:8px 12px 0;background:#0c121e;overflow-x:auto;flex-shrink:0}
+.tab{
+ display:flex;align-items:center;gap:8px;padding:10px 11px;
+ min-width:115px;max-width:200px;background:transparent;
+ border:1px solid transparent;border-radius:9px 9px 0 0;
+ color:var(--muted);font-size:12px
+}
+.tab.active{background:var(--panel);color:white;border-color:var(--border);border-bottom-color:var(--panel)}
+.tab-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab-close{font-size:17px;opacity:.6}
+.tab-close:hover{color:var(--red);opacity:1}
+.add-tab{background:none;border:0;color:var(--muted);font-size:21px;padding:0 12px}
+.toolbar{display:flex;align-items:center;gap:7px;padding:11px 13px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
+.tool{width:35px;height:35px;font-size:17px;flex-shrink:0}
+.tool:disabled{opacity:.3;cursor:not-allowed}
+.tool:hover,.icon-btn:hover{background:#263751}
+.address-wrap{
+ display:flex;align-items:center;gap:9px;flex:1;min-width:0;
+ height:39px;padding:0 12px;background:#080e18;
+ border:1px solid var(--border);border-radius:10px
+}
+.address-wrap:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px #3988ff19}
+.address{flex:1;min-width:0;background:none;border:0;outline:0;color:white;font-size:13px}
+.address::placeholder{color:#718198}
+.go{height:37px;padding:0 19px;background:var(--blue);border:0;border-radius:9px;color:white;font-weight:750}
+.go:hover{background:var(--blue2)}
+.actions{display:flex;align-items:center;gap:6px;padding:8px 13px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto}
+.action{background:none;border:0;color:var(--muted);padding:8px 10px;border-radius:7px;font-size:12px;white-space:nowrap}
+.action:hover,.action.selected{background:var(--panel2);color:white}
+.action.right{margin-left:auto}
+.workspace{flex:1;min-height:0;position:relative;background:#080c14}
+.frame{display:none;width:100%;height:100%;border:0;background:white}
+.frame.active{display:block}
+.home-screen{
+ position:absolute;inset:0;overflow:auto;display:flex;align-items:center;
+ justify-content:center;padding:25px;
+ background:radial-gradient(ellipse at 50% 35%,#172b4c,#0a111e 52%,#080c14)
+}
+.home-content{width:min(700px,100%);text-align:center}
+.hero-icon{
+ width:75px;height:75px;margin:0 auto 20px;border-radius:23px;
+ display:grid;place-items:center;font-size:37px;
+ background:linear-gradient(135deg,#398bff,#674bff);box-shadow:0 0 50px #3988ff44
+}
+h1{font-size:43px;letter-spacing:-1.5px;margin:0 0 9px}
+h1 span{color:#62aaff}
+.subtitle{color:var(--muted);font-size:14px;line-height:1.7}
+.home-search{display:flex;gap:8px;margin:29px auto 24px;padding:7px;background:#121e30;border:1px solid #344968;border-radius:13px;max-width:570px}
+.home-search input{flex:1;min-width:0;background:none;border:0;outline:0;color:white;padding:0 12px}
+.home-search button{background:var(--blue);color:white;border:0;border-radius:8px;padding:12px 20px;font-weight:700}
+.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;text-align:left;margin-top:30px}
+.quick-card{background:#111b2a;border:1px solid var(--border);border-radius:12px;padding:15px}
+.quick-card b{display:block;font-size:13px;margin-bottom:6px}
+.quick-card small{color:var(--muted);font-size:11px;line-height:1.5}
+.quick-icon{font-size:20px;margin-bottom:12px}
+.home-footer{font-size:10px;color:#64758c;margin-top:25px;letter-spacing:1px}
+.error-screen{
+ position:absolute;inset:0;display:none;align-items:center;
+ justify-content:center;padding:25px;background:radial-gradient(ellipse at 50% 35%,#281925,#100e19 55%,#080c14)
+}
+.error-content{width:min(440px,100%);text-align:center}
+.error-icon{
+ width:76px;height:76px;border:1px solid #7c3949;background:#451d2c;
+ border-radius:23px;margin:0 auto 20px;display:grid;place-items:center;font-size:34px
+}
+.error-content h2{font-size:28px;margin:0 0 10px}
+.error-content p{color:var(--muted);font-size:13px;line-height:1.7}
+.error-url{margin:20px 0;padding:12px;background:#191522;border:1px solid #49303d;border-radius:9px;color:#c9a8b4;font-size:11px;overflow-wrap:anywhere}
+.error-buttons{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}
+.primary,.secondary{padding:12px 19px;border-radius:9px;font-weight:700;border:0}
+.primary{background:var(--blue);color:white}
+.secondary{background:#292332;color:white;border:1px solid #453748}
+.loading{
+ position:absolute;inset:0;display:none;align-items:center;
+ justify-content:center;background:#080c14;z-index:3
+}
+.loading.show{display:flex}
+.loader-content{text-align:center;color:var(--muted);font-size:13px}
+.spinner{width:35px;height:35px;border:3px solid #25364f;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 15px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:18px;background:#03060bd9;z-index:10;overflow:auto}
+.overlay.show{display:flex}
+.modal{width:min(510px,100%);max-height:90%;overflow:auto;background:#111b2a;border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 20px 80px #0009}
+.modal-head{display:flex;align-items:center;margin-bottom:18px}
+.modal-head h2{font-size:19px;margin:0}
+.modal-head button{margin-left:auto}
+.field{margin:15px 0}
+.field label{display:block;font-size:12px;color:#adbed3;margin-bottom:8px}
+.field input{width:100%;padding:12px;background:#080e18;border:1px solid var(--border);border-radius:8px;color:white;outline:0}
+.save{width:100%;padding:12px;background:var(--blue);color:white;border:0;border-radius:9px;font-weight:700;margin-top:9px}
+.list{max-height:350px;overflow:auto}
+.list-item{display:flex;align-items:center;gap:10px;padding:12px 3px;border-bottom:1px solid var(--border);font-size:12px}
+.item-text{flex:1;min-width:0;overflow:hidden}
+.item-text b,.item-text small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item-text small{color:var(--muted);margin-top:4px}
+.list-item button{background:var(--panel2);border:1px solid var(--border);color:white;border-radius:7px;padding:7px}
+.empty{text-align:center;color:var(--muted);padding:35px 10px;font-size:13px}
+.toast{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);background:#1b2b42;border:1px solid #385174;padding:11px 17px;border-radius:9px;font-size:12px;display:none;z-index:20}
+.toast.show{display:block}
+.statusbar{height:24px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:#0c121e;border-top:1px solid var(--border);color:#718198;font-size:10px;flex-shrink:0}
+@media(max-width:650px){
+ .topbar{height:55px;padding:0 10px}.logo{font-size:16px}
+ .mode{font-size:0}.tabs{padding-left:6px}.tab{min-width:110px}
+ .toolbar{padding:8px 6px;gap:5px}.tool{width:31px;height:33px}
+ .go{padding:0 12px}.actions{padding:6px}
+ h1{font-size:34px}.quick-grid{grid-template-columns:1fr}
+ .home-screen{padding:18px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="topbar">
+ <div class="logo"><div class="logo-icon">N</div>NEXUS<span>PROXY</span></div>
+ <div class="top-right">
+  <div class="mode"><span class="dot"></span> Browser Mode</div>
+  <button class="icon-btn" id="historyTop" title="History">◷</button>
+  <button class="icon-btn" id="settingsTop" title="Settings">⚙</button>
+ </div>
+</header>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="toolbar">
+ <button class="tool" id="back" title="Back" disabled>←</button>
+ <button class="tool" id="forward" title="Forward" disabled>→</button>
+ <button class="tool" id="reload" title="Reload">↻</button>
+ <button class="tool" id="home" title="Home">⌂</button>
+ <div class="address-wrap">
+  <span style="color:#55dca2">⌑</span>
+  <input class="address" id="address" placeholder="Search or enter website address..." autocomplete="off">
+ </div>
+ <button class="go" id="go">GO</button>
+</div>
+
+<div class="actions">
+ <button class="action" id="bookmark">☆ Bookmark</button>
+ <button class="action" id="bookmarks">★ Bookmarks</button>
+ <button class="action" id="history">◷ History</button>
+ <button class="action" id="fullscreen">⛶ Fullscreen</button>
+ <button class="action right" id="newTab">＋ New tab</button>
+</div>
+
+<main class="workspace" id="workspace">
+ <div class="home-screen" id="homeScreen">
+  <div class="home-content">
+   <div class="hero-icon">N</div>
+   <h1>Nexus <span>Proxy</span></h1>
+   <div class="subtitle">Your private browsing workspace.<br>Enter a website below to get started.</div>
+   <div class="home-search">
+    <input id="homeAddress" placeholder="Search or enter a website URL...">
+    <button id="homeGo">Browse →</button>
+   </div>
+   <div class="quick-grid">
+    <div class="quick-card"><div class="quick-icon">⚡</div><b>Fast browsing</b><small>Quick navigation and a clean browsing experience.</small></div>
+    <div class="quick-card"><div class="quick-icon">🔖</div><b>Your bookmarks</b><small>Save and revisit your favourite websites.</small></div>
+    <div class="quick-card"><div class="quick-icon">🗂️</div><b>Multiple tabs</b><small>Keep several websites open at once.</small></div>
+   </div>
+   <div class="home-footer">NEXUS PROXY · BROWSER WORKSPACE</div>
+  </div>
+ </div>
+
+ <div class="error-screen" id="errorScreen">
+  <div class="error-content">
+   <div class="error-icon">🛡️</div>
+   <h2>This URL is unsafe</h2>
+   <p>This website cannot be opened in Nexus Proxy. It may block embedded browsing or have refused the connection.</p>
+   <div class="error-url" id="errorUrl"></div>
+   <div class="error-buttons">
+    <button class="primary" id="errorBack">← Go Back</button>
+    <button class="secondary" id="errorHome">⌂ New tab</button>
+   </div>
+  </div>
+ </div>
+
+ <div class="loading" id="loading">
+  <div class="loader-content"><div class="spinner"></div>Loading website...</div>
+ </div>
+
+ <div class="overlay" id="overlay">
+  <div class="modal">
+   <div class="modal-head"><h2 id="modalTitle">Settings</h2><button class="icon-btn" id="closeModal">✕</button></div>
+   <div id="modalContent"></div>
+  </div>
+ </div>
+ <div class="toast" id="toast"></div>
+</main>
+
+<footer class="statusbar">
+ <span id="bottomStatus">Ready</span>
+ <span>NEXUS PROXY · LOCAL WORKSPACE</span>
+</footer>
+</div>
+
+<script>
+(()=>{
+"use strict";
+const $=id=>document.getElementById(id);
+const KEYS={bookmarks:"nexus_bookmarks_v2",history:"nexus_history_v2",settings:"nexus_settings_v2"};
+const read=(key,def)=>{
+ try{return JSON.parse(localStorage.getItem(key))??def}catch{return def}
+};
+const save=(key,value)=>{
+ try{localStorage.setItem(key,JSON.stringify(value))}
+ catch{notify("Unable to save browser data.")}
+};
+let bookmarks=read(KEYS.bookmarks,[]);
+let history=read(KEYS.history,[]);
+let settings=read(KEYS.settings,{search:"https://www.google.com/search?q="});
+let tabs=[],activeId=null,nextId=1,toastTimer=null;
+
+function notify(message){
+ $("toast").textContent=message;
+ $("toast").classList.add("show");
+ clearTimeout(toastTimer);
+ toastTimer=setTimeout(()=>$("toast").classList.remove("show"),2500);
+}
+function current(){return tabs.find(t=>t.id===activeId)}
+function setStatus(s){$("bottomStatus").textContent=s}
+function hostname(url){
+ try{return new URL(url).hostname.replace(/^www\./,"")}
+ catch{return "Website"}
+}
+function normalize(value){
+ let v=value.trim();
+ if(!v)return null;
+ if(/\s/.test(v)||(!v.includes(".")&&!/^https?:\/\//i.test(v))){
+  return settings.search+encodeURIComponent(v);
+ }
+ if(!/^https?:\/\//i.test(v))v="https://"+v;
+ try{
+  const u=new URL(v);
+  if(!["http:","https:"].includes(u.protocol))return null;
+  return u.href;
+ }catch{return null}
+}
+function createTab(){
+ const tab={id:nextId++,url:"",title:"New tab",trail:[],position:-1,frame:null,timer:null,failed:false};
+ const frame=document.createElement("iframe");
+ frame.className="frame";
+ frame.title="Website browsing area";
+ frame.referrerPolicy="no-referrer";
+ frame.setAttribute("sandbox","allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads");
+ frame.addEventListener("load",()=>{
+  if(tab.url&&!tab.failed&&activeId===tab.id){
+   clearTimeout(tab.timer);
+   $("loading").classList.remove("show");
+   setStatus("Loaded · "+hostname(tab.url));
+  }
+ });
+ tab.frame=frame;
+ $("workspace").insertBefore(frame,$("overlay"));
+ tabs.push(tab);
+ activeId=tab.id;
+ renderTabs();
+ showActive();
+ return tab;
+}
+function renderTabs(){
+ const root=$("tabs");
+ root.innerHTML="";
+ tabs.forEach(tab=>{
+  const el=document.createElement("div");
+  el.className="tab"+(tab.id===activeId?" active":"");
+  const name=document.createElement("span");
+  name.className="tab-name";
+  name.textContent="◉ "+tab.title;
+  name.title=tab.title;
+  name.onclick=()=>switchTab(tab.id);
+  const close=document.createElement("span");
+  close.className="tab-close";
+  close.textContent="×";
+  close.title="Close tab";
+  close.onclick=e=>{e.stopPropagation();closeTab(tab.id)};
+  el.append(name,close);
+  root.appendChild(el);
+ });
+ const add=document.createElement("button");
+ add.className="add-tab";
+ add.textContent="+";
+ add.title="New tab";
+ add.onclick=createTab;
+ root.appendChild(add);
+}
+function switchTab(id){
+ activeId=id;
+ renderTabs();
+ showActive();
+}
+function showActive(){
+ const tab=current();
+ tabs.forEach(t=>t.frame.classList.toggle("active",t.id===activeId));
+ const isError=!!tab?.failed;
+ $("homeScreen").style.display=(!tab?.url&&!isError)?"flex":"none";
+ $("errorScreen").style.display=isError?"flex":"none";
+ $("address").value=tab?.url||"";
+ $("back").disabled=!tab||tab.position<=0;
+ $("forward").disabled=!tab||tab.position>=tab.trail.length-1;
+}
+function closeTab(id){
+ const index=tabs.findIndex(t=>t.id===id);
+ if(index<0)return;
+ clearTimeout(tabs[index].timer);
+ tabs[index].frame.remove();
+ tabs.splice(index,1);
+ if(!tabs.length){createTab();return}
+ if(activeId===id)activeId=tabs[Math.max(0,index-1)].id;
+ renderTabs();
+ showActive();
+}
+function showError(tab){
+ clearTimeout(tab.timer);
+ tab.failed=true;
+ tab.frame.style.display="none";
+ if(activeId===tab.id){
+  $("loading").classList.remove("show");
+  $("errorUrl").textContent=tab.url;
+  showActive();
+ }
+ setStatus("Unable to load website");
+}
+function navigate(value,record=true){
+ const target=normalize(value);
+ if(!target){notify("Enter a valid website address.");return}
+ const tab=current();
+ if(!tab)return;
+ clearTimeout(tab.timer);
+ tab.failed=false;
+ tab.url=target;
+ tab.title=hostname(target);
+ if(record){
+  tab.trail=tab.trail.slice(0,tab.position+1);
+  tab.trail.push(target);
+  tab.position=tab.trail.length-1;
+ }
+ tab.frame.style.display="block";
+ tab.frame.src=target;
+ $("homeScreen").style.display="none";
+ $("errorScreen").style.display="none";
+ $("loading").classList.add("show");
+ $("address").value=target;
+ renderTabs();
+ showActive();
+ $("loading").classList.add("show");
+ setStatus("Loading · "+hostname(target));
+ // Browsers do not expose iframe refusal details.
+ // This timeout provides a fallback, not a guaranteed block detector.
+ tab.timer=setTimeout(()=>{
+  if(tab.url===target&&!tab.failed){
+   showError(tab);
+  }
+ },18000);
+ if(record){
+  history.unshift({url:target,title:tab.title,time:Date.now()});
+  history=history.slice(0,150);
+  save(KEYS.history,history);
+ }
+}
+function back(){
+ const tab=current();
+ if(!tab)return;
+ if(tab.failed){tab.failed=false;tab.frame.style.display="block"}
+ if(tab.position>0){
+  tab.position--;
+  loadPosition(tab);
+ }else home();
+}
+function forward(){
+ const tab=current();
+ if(tab&&tab.position<tab.trail.length-1){
+  tab.position++;
+  loadPosition(tab);
+ }
+}
+function loadPosition(tab){
+ const url=tab.trail[tab.position];
+ clearTimeout(tab.timer);
+ tab.url=url;tab.title=hostname(url);tab.failed=false;
+ tab.frame.style.display="block";
+ tab.frame.src=url;
+ $("loading").classList.add("show");
+ showActive();
+ setStatus("Loading · "+hostname(url));
+ tab.timer=setTimeout(()=>{if(tab.url===url&&!tab.failed)showError(tab)},18000);
+}
+function reload(){
+ const tab=current();
+ if(!tab?.url){notify("Nothing to reload.");return}
+ tab.failed=false;
+ tab.frame.style.display="block";
+ tab.frame.src=tab.url;
+ $("loading").classList.add("show");
+ setStatus("Reloading...");
+ const url=tab.url;
+ clearTimeout(tab.timer);
+ tab.timer=setTimeout(()=>{if(tab.url===url&&!tab.failed)showError(tab)},18000);
+}
+function home(){
+ const tab=current();
+ if(!tab)return;
+ clearTimeout(tab.timer);
+ tab.url="";tab.title="New tab";tab.trail=[];tab.position=-1;tab.failed=false;
+ tab.frame.removeAttribute("src");
+ tab.frame.style.display="none";
+ $("loading").classList.remove("show");
+ showActive();renderTabs();setStatus("Ready");
+}
+function addBookmark(){
+ const tab=current();
+ if(!tab?.url){notify("Open a website first.");return}
+ if(bookmarks.some(b=>b.url===tab.url)){notify("Already bookmarked.");return}
+ bookmarks.unshift({url:tab.url,title:tab.title});
+ save(KEYS.bookmarks,bookmarks);notify("Bookmark saved.");
+}
+function openModal(title,content){
+ $("modalTitle").textContent=title;
+ $("modalContent").replaceChildren(content);
+ $("overlay").classList.add("show");
+}
+function closeModal(){$("overlay").classList.remove("show")}
+function openSettings(){
+ const box=document.createElement("div");
+ box.innerHTML=`
+ <div class="field"><label>SEARCH ENGINE URL</label>
+ <input id="searchSetting" placeholder="https://www.google.com/search?q=">
+ </div>
+ <p style="font-size:11px;color:#8999b0;line-height:1.6">Choose the search URL used when you enter ordinary search terms in the address bar.</p>
+ <button class="save" id="saveSettings">Save settings</button>`;
+ openModal("Settings",box);
+ $("searchSetting").value=settings.search;
+ $("saveSettings").onclick=()=>{
+  const value=$("searchSetting").value.trim();
+  try{
+   const u=new URL(value);
+   if(!["http:","https:"].includes(u.protocol))throw 0;
+  }catch{notify("Enter a valid search URL.");return}
+  settings.search=value;
+  save(KEYS.settings,settings);
+  closeModal();notify("Settings saved.");
+ };
+}
+function openList(type){
+ const isBookmarks=type==="bookmarks";
+ const data=isBookmarks?bookmarks:history;
+ const box=document.createElement("div");
+ if(!data.length)box.innerHTML='<div class="empty">Nothing here yet.</div>';
+ else{
+  const list=document.createElement("div");
+  list.className="list";
+  data.forEach((item,index)=>{
+   const row=document.createElement("div");
+   row.className="list-item";
+   const icon=document.createElement("span");
+   icon.textContent=isBookmarks?"★":"◷";
+   const text=document.createElement("div");
+   text.className="item-text";
+   const b=document.createElement("b");
+   b.textContent=item.title||hostname(item.url);
+   const small=document.createElement("small");
+   small.textContent=item.url;
+   text.append(b,small);
+   const open=document.createElement("button");
+   open.textContent="Open";
+   open.onclick=()=>{closeModal();navigate(item.url)};
+   row.append(icon,text,open);
+   if(isBookmarks){
+    const remove=document.createElement("button");
+    remove.textContent="×";
+    remove.onclick=()=>{
+     bookmarks.splice(index,1);save(KEYS.bookmarks,bookmarks);
+     closeModal();openList(type);
+    };
+    row.append(remove);
+   }
+   list.append(row);
+  });
+  box.append(list);
+ }
+ if(!isBookmarks&&data.length){
+  const clear=document.createElement("button");
+  clear.className="save";clear.style.background="#29374a";
+  clear.textContent="Clear browsing history";
+  clear.onclick=()=>{history=[];save(KEYS.history,history);closeModal();openList(type)};
+  box.append(clear);
+ }
+ openModal(isBookmarks?"Bookmarks":"Browsing history",box);
+}
+function fullscreen(){
+ if(!document.fullscreenElement)$("workspace").requestFullscreen?.().catch(()=>notify("Fullscreen unavailable."));
+ else document.exitFullscreen?.();
+}
+
+$("go").onclick=()=>navigate($("address").value);
+$("address").addEventListener("keydown",e=>{if(e.key==="Enter")navigate(e.target.value)});
+$("homeGo").onclick=()=>navigate($("homeAddress").value);
+$("homeAddress").addEventListener("keydown",e=>{if(e.key==="Enter")navigate(e.target.value)});
+$("back").onclick=back;
+$("forward").onclick=forward;
+$("reload").onclick=reload;
+$("home").onclick=home;
+$("bookmark").onclick=addBookmark;
+$("bookmarks").onclick=()=>openList("bookmarks");
+$("history").onclick=()=>openList("history");
+$("historyTop").onclick=()=>openList("history");
+$("settingsTop").onclick=openSettings;
+$("fullscreen").onclick=fullscreen;
+$("newTab").onclick=createTab;
+$("closeModal").onclick=closeModal;
+$("errorBack").onclick=back;
+$("errorHome").onclick=home;
+$("overlay").addEventListener("click",e=>{if(e.target===$("overlay"))closeModal()});
+document.addEventListener("keydown",e=>{
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="l"){
+  $("address").focus();$("address").select();e.preventDefault();
+ }
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="t"){createTab();e.preventDefault()}
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="w"&&tabs.length>1){closeTab(activeId);e.preventDefault()}
+ if(e.key==="Escape")closeModal();
+});
+createTab();
+})();
+</script>
+</body>
+</html>
